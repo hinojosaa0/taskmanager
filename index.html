@@ -103,14 +103,26 @@
   </div>
 
   <script type="module">
-    // --- Firebase CDN SDK ---
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
-    import { getFirestore, collection, addDoc, doc, setDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+    import {
+      getAuth,
+      GoogleAuthProvider,
+      signInWithPopup,
+      signInWithRedirect,
+      getRedirectResult,
+      signOut,
+      onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+    import {
+      getFirestore,
+      collection, addDoc, doc, setDoc, deleteDoc,
+      onSnapshot, query, orderBy, serverTimestamp,
+      enableIndexedDbPersistence
+    } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-    // 🔧 Replace with your Firebase config from Firebase Console
+    // 🔧 Paste your real Firebase config here
     const firebaseConfig = {
-      apiKey: "AIzaSyA6EXAMPLE1234567",
+  apiKey: "AIzaSyA6EXAMPLE1234567",
   authDomain: "taskmanager-sync.firebaseapp.com",
   projectId: "taskmanager-sync",
   storageBucket: "taskmanager-sync.appspot.com",
@@ -118,7 +130,7 @@
   appId: "1:123456789012:web:abc123def456"
 };
 
-    // Init Firebase
+    // Initialize Firebase
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
@@ -134,7 +146,28 @@
 
     // Auth
     const provider = new GoogleAuthProvider();
-    signInBtn.onclick = () => signInWithPopup(auth, provider);
+
+    // Complete redirect if it happened
+    try {
+      await getRedirectResult(auth);
+    } catch (e) {
+      console.error("Redirect sign-in error:", e);
+    }
+
+    // Popup first, fallback to redirect if blocked
+    signInBtn.onclick = async () => {
+      try {
+        await signInWithPopup(auth, provider);
+      } catch (err) {
+        console.warn("Popup failed, trying redirect...", err);
+        try {
+          await signInWithRedirect(auth, provider);
+        } catch (e) {
+          console.error("Redirect sign-in failed:", e);
+          userInfo.textContent = "Sign-in error. Check Console for details.";
+        }
+      }
+    };
     signOutBtn.onclick = () => signOut(auth);
 
     let unsubscribe = null;
@@ -155,7 +188,7 @@
       }
     });
 
-    // Firestore CRUD
+    // Firestore logic
     function subscribeToTasks(uid){
       const qy = query(collection(db, `users/${uid}/tasks`), orderBy("createdAt", "asc"));
       unsubscribe = onSnapshot(qy, (snap) => {
@@ -173,7 +206,6 @@
       await deleteDoc(doc(db, `users/${uid}/tasks/${id}`));
     }
 
-    // Add button
     if (addBtn && input) {
       addBtn.addEventListener('click', async () => {
         const text = (input.value || '').trim();
@@ -189,7 +221,6 @@
       });
     }
 
-    // Exposed for checkboxes and deletes
     window.toggleDone = async (id, checked) => {
       const u = auth.currentUser;
       if (u) return setTaskDone(u.uid, id, checked);
@@ -203,24 +234,7 @@
       writeLocal(tasks); renderTasks(tasks);
     };
 
-    // Render
-    function renderTasks(tasks){
-      if (!list) return;
-      list.innerHTML = '';
-      tasks.forEach(t => {
-        const li = document.createElement('li');
-        li.innerHTML = `
-          <label>
-            <input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggleDone('${t.id}', this.checked)">
-            <span class="${t.done ? 'done' : ''}">${escapeHtml(t.text)}</span>
-          </label>
-          <button class="delete" onclick="deleteTask('${t.id}')">✕</button>
-        `;
-        list.appendChild(li);
-      });
-    }
-
-    // Local storage fallback + one-time migration
+    // Local fallback + migration
     const LS_KEY = 'taskmanager.tasks';
     function readLocal(){ try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); } catch { return []; } }
     function writeLocal(tasks){ localStorage.setItem(LS_KEY, JSON.stringify(tasks)); }
@@ -233,7 +247,21 @@
       sessionStorage.setItem('migrated','1');
     }
 
-    function escapeHtml(s){ return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])); }
+    function renderTasks(tasks){
+      if (!list) return;
+      list.innerHTML = '';
+      tasks.forEach(t => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+          <label>
+            <input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggleDone('${t.id}', this.checked)">
+            <span class="${t.done ? 'done' : ''}">${(t.text || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}</span>
+          </label>
+          <button class="delete" onclick="deleteTask('${t.id}')">✕</button>
+        `;
+        list.appendChild(li);
+      });
+    }
   </script>
 </body>
 </html>
