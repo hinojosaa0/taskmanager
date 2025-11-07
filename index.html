@@ -1,843 +1,237 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Project Task Manager</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Task Manager</title>
   <style>
-    :root {
-      --bg:#0f172a; /* slate-900 */
-      --card:#111827; /* gray-900 */
-      --muted:#1f2937; /* gray-800 */
-      --text:#e5e7eb; /* gray-200 */
-      --sub:#9ca3af; /* gray-400 */
-      --primary:#4f46e5; /* indigo-600 */
-      --accent:#22c55e; /* green-500 */
-      --warn:#f59e0b;   /* amber-500 */
-      --danger:#ef4444; /* red-500 */
-      --blue:#60a5fa;   /* blue-400 */
+    body {
+      font-family: system-ui, sans-serif;
+      background: #f9fafb;
+      margin: 0;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
-    *{box-sizing:border-box}
-    body{margin:0;background:var(--bg);color:var(--text);font:14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial}
-    a{color:inherit}
-    .app{display:grid;grid-template-rows:auto 1fr auto;min-height:100svh}
-    header{display:flex;gap:.75rem;align-items:center;padding:.75rem 1rem;border-bottom:1px solid var(--muted);position:sticky;top:0;background:linear-gradient(180deg,var(--bg),rgba(15,23,42,.95));backdrop-filter:saturate(180%) blur(6px);z-index:10}
-    header h1{font-size:1.05rem;margin:0;font-weight:700;letter-spacing:.2px}
-    header .grow{flex:1}
-    header input[type="search"]{width:100%;max-width:420px;padding:.55rem .8rem;border-radius:.6rem;border:1px solid var(--muted);background:#0b1222;color:var(--text)}
-
-    .container{display:grid;grid-template-columns:260px 1fr;gap:12px;padding:12px}
-    @media (max-width:900px){.container{grid-template-columns:1fr}.sidebar{display:none}.mobile-tabs{display:grid}}
-
-    .sidebar{display:grid;gap:12px}
-    .card{background:var(--card);border:1px solid var(--muted);border-radius:14px}
-    .card h3{margin:0;padding:12px 12px 0;font-size:.9rem;color:var(--sub)}
-    .card .content{padding:12px}
-
-    .projects{display:grid;gap:6px;max-height:45vh;overflow:auto;padding:8px}
-    .project{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px;border-radius:10px;background:#0b1222;border:1px solid #0e162b;cursor:pointer}
-    .project.active{outline:2px solid var(--primary)}
-    .project small{color:var(--sub)}
-
-    .btn{appearance:none;border:1px solid var(--muted);background:#0b1222;color:var(--text);padding:.5rem .8rem;border-radius:10px;cursor:pointer}
-    .btn.primary{background:var(--primary);border-color:transparent}
-    .btn.ghost{background:transparent}
-    .btn.full{width:100%}
-    .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-
-    .main{display:grid;gap:12px}
-
-    .tabs{display:flex;gap:8px;flex-wrap:wrap;border-bottom:1px solid var(--muted);padding:0 8px}
-    .tab{padding:.5rem .8rem;border-radius:10px 10px 0 0;background:#0b1222;border:1px solid var(--muted);border-bottom:none;cursor:pointer}
-    .tab.active{background:var(--primary)}
-
-    .section{display:none}
-    .section.active{display:block}
-
-    form.grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
-    @media (max-width:900px){form.grid{grid-template-columns:1fr 1fr}}
-    label{display:grid;gap:4px;font-size:.8rem;color:var(--sub)}
-    input, select, textarea{width:100%;padding:.55rem .6rem;border-radius:10px;border:1px solid var(--muted);background:#0b1222;color:var(--text)}
-    textarea{min-height:64px;resize:vertical}
-
-    .list{display:grid;gap:8px;max-height:45vh;overflow:auto}
-    .item{display:grid;grid-template-columns:1fr 100px 120px 80px;gap:8px;padding:10px;border:1px solid var(--muted);border-radius:12px;background:#0b1222}
-    @media (max-width:700px){.item{grid-template-columns:1fr}}
-    .badge{padding:.2rem .5rem;border-radius:999px;font-size:.7rem;display:inline-block}
-    .t-Task{background:rgba(79,70,229,.18);border:1px solid var(--primary)}
-    .t-Meeting{background:rgba(96,165,250,.18);border:1px solid var(--blue)}
-    .t-Note{background:rgba(156,163,175,.18);border:1px solid #6b7280}
-    .t-Minutes{background:rgba(245,158,11,.18);border:1px solid var(--warn)}
-    .t-Deliverable{background:rgba(34,197,94,.18);border:1px solid var(--accent)}
-
-    /* Gantt */
-    .gantt-wrap{overflow:auto;border:1px solid var(--muted);border-radius:12px;background:#0b1222}
-    .gantt{min-width:800px}
-    .legend{display:flex;gap:12px;padding:8px;color:var(--sub)}
-    .legend span{display:inline-flex;align-items:center;gap:6px}
-    .legend i{display:inline-block;width:14px;height:8px;border-radius:2px}
-    .bar-plan{fill:rgba(96,165,250,.5)}
-    .bar-actual{fill:rgba(34,197,94,.7)}
-    .bar-delay{fill:rgba(239,68,68,.6)}
-    .today{stroke:var(--danger);stroke-width:1.5}
-
-    /* Bottom mobile tabs */
-    .mobile-tabs{display:none;grid-template-columns:repeat(4,1fr);gap:6px;padding:8px;border-top:1px solid var(--muted);background:#0b1222}
-    .mobile-tabs button{padding:.6rem .4rem;border-radius:10px;border:1px solid var(--muted);background:#0b1222;color:var(--text)}
-    .mobile-tabs button.active{background:var(--primary);border-color:transparent}
-
-    footer{padding:8px 12px;color:var(--sub)}
+    h1 {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    #authBar {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    #taskContainer {
+      width: 100%;
+      max-width: 500px;
+      background: white;
+      border-radius: 12px;
+      padding: 1rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    #taskInputRow {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 1rem;
+    }
+    #newTask {
+      flex: 1;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 1rem;
+    }
+    #addTaskBtn {
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      border: none;
+      border-radius: 6px;
+      background: #2563eb;
+      color: white;
+      cursor: pointer;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    li {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.4rem 0;
+      border-bottom: 1px solid #eee;
+    }
+    li:last-child {
+      border-bottom: none;
+    }
+    li label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    li span.done {
+      text-decoration: line-through;
+      color: #888;
+    }
+    button.delete {
+      border: none;
+      background: transparent;
+      color: #ef4444;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
-<div class="app">
-  <header>
-    <h1>Task Manager</h1>
-    <div class="grow"></div>
-    <input id="search" type="search" placeholder="Buscar (⌘/Ctrl+K)" />
-    <button class="btn ghost" id="exportBtn" title="Exportar JSON">Exportar</button>
-    <input id="importInput" type="file" accept="application/json" style="display:none" />
-    <button class="btn ghost" id="importBtn" title="Importar JSON">Importar</button>
-  </header>
+  <h1>Task Manager</h1>
 
-  <div class="container">
-    <!-- Sidebar -->
-    <aside class="sidebar">
-      <div class="card">
-        <h3>Proyectos</h3>
-        <div class="content">
-          <div class="row" style="margin-bottom:8px">
-            <input id="newProjectName" placeholder="Nuevo proyecto" />
-            <button class="btn primary" id="addProject">Agregar</button>
-          </div>
-          <div class="projects" id="projectList"></div>
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>Notas del proyecto</h3>
-        <div class="content">
-          <textarea id="projectNotes" placeholder="Notas rápidas de este proyecto..."></textarea>
-          <div class="row" style="margin-top:8px;justify-content:space-between">
-            <small id="notesSaved" style="color:var(--sub)">Auto-guardado</small>
-            <button class="btn" id="clearNotes">Limpiar</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>Acciones</h3>
-        <div class="content">
-          <div class="row">
-            <button class="btn full" id="clearData">Borrar datos locales</button>
-          </div>
-        </div>
-      </div>
-    </aside>
-
-    <!-- Main -->
-    <main class="main">
-      <div class="tabs">
-        <button class="tab active" data-tab="capture">Captura</button>
-        <button class="tab" data-tab="kanban">Listado</button>
-        <button class="tab" data-tab="gantt">Gantt</button>
-        <button class="tab" data-tab="minutes">Notas/Minutas</button>
-      </div>
-
-      <!-- CAPTURE -->
-      <section class="section active" id="capture">
-        <div class="card">
-          <h3>Alta de ítems</h3>
-          <div class="content">
-            <form class="grid" id="itemForm">
-              <label>Proyecto
-                <select id="fProject" required></select>
-              </label>
-              <label>Tipo
-                <select id="fType" required>
-                  <option>Task</option>
-                  <option>Meeting</option>
-                  <option>Note</option>
-                  <option>Minutes</option>
-                  <option>Deliverable</option>
-                </select>
-              </label>
-              <label>Título
-                <input id="fTitle" required placeholder="Ej. Definir WACC, Reunión con BMW" />
-              </label>
-              <label>Estado
-                <select id="fStatus" required>
-                  <option value="Planned">Planned</option>
-                  <option value="In Progress">In Progress</option>
-                  <option value="Blocked">Blocked</option>
-                  <option value="Done">Done</option>
-                </select>
-              </label>
-              <label>% avance (real)
-                <input id="fPct" type="number" min="0" max="100" value="0" />
-              </label>
-              <label>Responsable
-                <input id="fOwner" placeholder="Dueño / responsable" />
-              </label>
-
-              <label>Plan inicio
-                <input id="fPs" type="date" />
-              </label>
-              <label>Plan fin
-                <input id="fPe" type="date" />
-              </label>
-              <label>Real inicio
-                <input id="fAs" type="date" />
-              </label>
-              <label>Real fin
-                <input id="fAe" type="date" />
-              </label>
-              <label class="col-span-2">Descripción
-                <textarea id="fDesc" placeholder="Detalles, links, acuerdos…"></textarea>
-              </label>
-              <div class="row" style="grid-column:1/-1;justify-content:flex-end">
-                <button class="btn" type="reset">Limpiar</button>
-                <button class="btn primary" type="submit">Guardar</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </section>
-
-      <!-- LIST -->
-      <section class="section" id="kanban">
-        <div class="card">
-          <h3>Listado por proyecto</h3>
-          <div class="content">
-            <div class="row" style="margin-bottom:8px">
-              <select id="filterProject"></select>
-              <select id="filterType">
-                <option value="">Todos</option>
-                <option>Task</option>
-                <option>Meeting</option>
-                <option>Note</option>
-                <option>Minutes</option>
-                <option>Deliverable</option>
-              </select>
-              <select id="filterStatus">
-                <option value="">Todos</option>
-                <option>Planned</option>
-                <option>In Progress</option>
-                <option>Blocked</option>
-                <option>Done</option>
-              </select>
-            </div>
-            <div class="list" id="itemList"></div>
-          </div>
-        </div>
-      </section>
-
-      <!-- GANTT -->
-      <section class="section" id="gantt">
-        <div class="card">
-          <h3>Gantt (Plan vs Real)</h3>
-          <div class="content">
-            <div class="row" style="margin-bottom:8px">
-              <select id="ganttProject"></select>
-              <label class="row" style="gap:6px;align-items:center"><input type="checkbox" id="ganttAll"/> <small>Consolidado (todos los proyectos)</small></label>
-              <button class="btn" id="expandAll" title="Expandir todos">Expandir</button>
-              <button class="btn" id="collapseAll" title="Colapsar todos">Colapsar</button>
-              <button class="btn" id="refreshGantt">Actualizar</button>
-            </div>
-            <div class="legend">
-              <span><i style="background:rgba(96,165,250,.5)"></i> Plan</span>
-              <span><i style="background:rgba(34,197,94,.7)"></i> Real</span>
-              <span><i style="background:rgba(239,68,68,.6)"></i> Retraso</span>
-            </div>
-            <div class="gantt-wrap">
-              <svg id="ganttSvg" class="gantt" height="320" viewBox="0 0 1000 320" preserveAspectRatio="xMinYMin meet"></svg>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- MINUTES/NOTES -->
-      <section class="section" id="minutes">
-        <div class="card">
-          <h3>Notas y Minutas</h3>
-          <div class="content">
-            <div class="list" id="noteList"></div>
-          </div>
-        </div>
-      </section>
-    </main>
+  <div id="authBar">
+    <button id="signInBtn">Sign in with Google</button>
+    <button id="signOutBtn" style="display:none;">Sign out</button>
+    <span id="userInfo" style="font-size:0.9rem;"></span>
   </div>
 
-  <!-- Mobile bottom nav -->
-  <nav class="mobile-tabs" id="mobileTabs">
-    <button data-tab="capture" class="active">Captura</button>
-    <button data-tab="kanban">Listado</button>
-    <button data-tab="gantt">Gantt</button>
-    <button data-tab="minutes">Notas</button>
-  </nav>
+  <div id="taskContainer">
+    <div id="taskInputRow">
+      <input id="newTask" type="text" placeholder="Add a new task..." />
+      <button id="addTaskBtn">Add</button>
+    </div>
+    <ul id="taskList"></ul>
+  </div>
 
-  <footer>
-    LocalStorage • Sin backend • Exportar/Importar JSON
-  </footer>
-</div>
+  <script type="module">
+    // --- Firebase CDN SDK ---
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+    import { getFirestore, collection, addDoc, doc, setDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-<script>
-(function(){
-  const LS_KEY = 'pmgr:v1';
-  let state = load() || { projects:[], items:[], activeProject:null, ui:{collapsed:{}} };
-  function migrate(){
-    (state.projects||[]).forEach(p=>{ if(p.notes===undefined) p.notes=''; });
-    if(!state.ui) state.ui = {collapsed:{}};
-    if(!state.ui.collapsed) state.ui.collapsed = {};
-  }
-  migrate();
+    // 🔧 Replace with your Firebase config from Firebase Console
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_APP.firebaseapp.com",
+      projectId: "YOUR_APP",
+      appId: "YOUR_APP_ID"
+    };
 
-  // DOM refs
-  const projectList = document.getElementById('projectList');
-  const newProjectName = document.getElementById('newProjectName');
-  const addProjectBtn = document.getElementById('addProject');
-  const fProject = document.getElementById('fProject');
-  const filterProject = document.getElementById('filterProject');
-  const ganttProject = document.getElementById('ganttProject');
-  const itemForm = document.getElementById('itemForm');
-  const itemList = document.getElementById('itemList');
-  const noteList = document.getElementById('noteList');
-  const tabs = [...document.querySelectorAll('.tab')];
-  const sections = [...document.querySelectorAll('.section')];
-  const mobileTabs = document.getElementById('mobileTabs');
-  const search = document.getElementById('search');
-  const exportBtn = document.getElementById('exportBtn');
-  const importBtn = document.getElementById('importBtn');
-  const importInput = document.getElementById('importInput');
-  const clearDataBtn = document.getElementById('clearData');
-  const ganttSvg = document.getElementById('ganttSvg');
-  const refreshGantt = document.getElementById('refreshGantt');
-  const projectNotes = document.getElementById('projectNotes');
-  const notesSaved = document.getElementById('notesSaved');
-  const clearNotes = document.getElementById('clearNotes');
-  const ganttAll = document.getElementById('ganttAll');
-  const expandAll = document.getElementById('expandAll');
-  const collapseAll = document.getElementById('collapseAll');
+    // Init Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    try { await enableIndexedDbPersistence(db); } catch {}
 
-  // Helpers
-  function save(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
-  function load(){ try{ return JSON.parse(localStorage.getItem(LS_KEY)); }catch(e){ return null } }
-  const uid = () => Math.random().toString(36).slice(2,9);
+    // UI elements
+    const signInBtn = document.getElementById('signInBtn');
+    const signOutBtn = document.getElementById('signOutBtn');
+    const userInfo = document.getElementById('userInfo');
+    const input = document.getElementById('newTask');
+    const addBtn = document.getElementById('addTaskBtn');
+    const list = document.getElementById('taskList');
 
-  function ensureDefaults(){
-    if(state.projects.length===0){
-      const p = {id:uid(), name:'Proyecto demo', notes:''};
-      state.projects.push(p); state.activeProject = p.id;
-      const today = new Date();
-      const d = (n)=> new Date(+today + n*86400000).toISOString().slice(0,10);
-      state.items.push(
-        {id:uid(), projectId:p.id, type:'Task', title:'Definir alcance', status:'Done', percent:100, owner:'', ps:d(-7), pe:d(-4), as:d(-7), ae:d(-4), desc:''},
-        {id:uid(), projectId:p.id, type:'Meeting', title:'Kickoff con cliente', status:'Done', percent:100, owner:'', ps:d(-6), pe:d(-6), as:d(-6), ae:d(-6), desc:'Acta generada'},
-        {id:uid(), projectId:p.id, type:'Deliverable', title:'Teaser financiero', status:'In Progress', percent:55, owner:'', ps:d(-3), pe:d(3), as:d(-2), ae:'', desc:''},
-        {id:uid(), projectId:p.id, type:'Task', title:'Modelo DCF', status:'Planned', percent:0, owner:'', ps:d(1), pe:d(5), as:'', ae:'', desc:''},
-        {id:uid(), projectId:p.id, type:'Minutes', title:'Minuta Semana 1', status:'Done', percent:100, owner:'', ps:d(-6), pe:d(-6), as:d(-6), ae:d(-6), desc:'Acuerdos: …'}
-      );
-      save();
-    }
-  }
+    // Auth
+    const provider = new GoogleAuthProvider();
+    signInBtn.onclick = () => signInWithPopup(auth, provider);
+    signOutBtn.onclick = () => signOut(auth);
 
-  ensureDefaults();
+    let unsubscribe = null;
+    onAuthStateChanged(auth, async (user) => {
+      if (unsubscribe) { unsubscribe(); unsubscribe = null; }
 
-  // Rendering
-  function renderProjects(){
-    projectList.innerHTML = '';
-    state.projects.forEach(p=>{
-      const el = document.createElement('div');
-      el.className = 'project'+(state.activeProject===p.id?' active':'');
-      el.innerHTML = `<div><strong>${p.name}</strong><div><small>${countItems(p.id)} ítems</small></div></div>
-                      <button class="btn" data-del="${p.id}">✕</button>`;
-      el.onclick = (e)=>{
-        if(e.target.dataset.del){
-          const id = e.target.dataset.del;
-          if(confirm('Eliminar proyecto y sus ítems?')){
-            state.items = state.items.filter(x=>x.projectId!==id);
-            state.projects = state.projects.filter(x=>x.id!==id);
-            if(state.projects[0]) state.activeProject = state.projects[0].id; else state.activeProject=null;
-            save(); renderAll();
-          }
-        } else { state.activeProject = p.id; save(); renderAll(); }
-      };
-      projectList.appendChild(el);
-    });
-
-    // selects
-    const opts = state.projects.map(p=>`<option value="${p.id}" ${p.id===state.activeProject?'selected':''}>${p.name}</option>`).join('');
-    fProject.innerHTML = opts;
-    filterProject.innerHTML = `<option value="">Todos</option>`+opts;
-    ganttProject.innerHTML = opts;
-  }
-
-  function countItems(projectId){
-    return state.items.filter(i=>!projectId || i.projectId===projectId).length;
-  }
-
-  function renderList(){
-    const proj = filterProject.value || state.activeProject;
-    const type = document.getElementById('filterType').value;
-    const status = document.getElementById('filterStatus').value;
-    const q = search.value.trim().toLowerCase();
-
-    const items = state.items
-      .filter(i=>(!proj || i.projectId===proj))
-      .filter(i=>(!type || i.type===type))
-      .filter(i=>(!status || i.status===status))
-      .filter(i=>!q || (i.title+" "+(i.desc||'')).toLowerCase().includes(q))
-      .sort((a,b)=> (a.pe||'').localeCompare(b.pe||''));
-
-    itemList.innerHTML = '';
-    items.forEach(i=>{
-      const el = document.createElement('div');
-      el.className = 'item';
-      const badgeCls = 'badge t-'+i.type;
-      el.innerHTML = `
-        <div>
-          <div class="row" style="justify-content:space-between">
-            <div>
-              <span class="badge ${badgeCls}">${i.type}</span>
-              <strong style="margin-left:6px">${i.title}</strong>
-            </div>
-            <small style="color:var(--sub)">${pct(i.percent)}%</small>
-          </div>
-          <div style="color:var(--sub);margin-top:4px">${i.desc||''}</div>
-        </div>
-        <div><small class="badge">${i.status}</small></div>
-        <div style="color:var(--sub)">
-          <div>Plan: ${fmt(i.ps)} → ${fmt(i.pe)}</div>
-          <div>Real: ${fmt(i.as)} → ${fmt(i.ae)}</div>
-        </div>
-        <div class="row" style="justify-content:flex-end">
-          <button class="btn" data-edit="${i.id}">Editar</button>
-          <button class="btn" data-del="${i.id}">Borrar</button>
-        </div>`;
-
-      el.onclick = (e)=>{
-        if(e.target.dataset.del){
-          const id = e.target.dataset.del;
-          if(confirm('Eliminar ítem?')){ state.items = state.items.filter(x=>x.id!==id); save(); renderAll(); }
-        }
-        if(e.target.dataset.edit){
-          const x = state.items.find(z=>z.id===e.target.dataset.edit);
-          if(!x) return;
-          // load into form
-          selectByValue(fProject, x.projectId);
-          document.getElementById('fType').value = x.type;
-          document.getElementById('fTitle').value = x.title;
-          document.getElementById('fStatus').value = x.status;
-          document.getElementById('fPct').value = x.percent||0;
-          document.getElementById('fOwner').value = x.owner||'';
-          document.getElementById('fPs').value = x.ps||'';
-          document.getElementById('fPe').value = x.pe||'';
-          document.getElementById('fAs').value = x.as||'';
-          document.getElementById('fAe').value = x.ae||'';
-          document.getElementById('fDesc').value = x.desc||'';
-          itemForm.dataset.editing = x.id;
-          activate('capture');
-        }
-      }
-      itemList.appendChild(el);
-    })
-  }
-
-  function renderNotes(){
-    const proj = state.activeProject;
-    const notes = state.items.filter(i=>i.projectId===proj && (i.type==='Note' || i.type==='Minutes'))
-      .sort((a,b)=> (b.ps||'').localeCompare(a.ps||''));
-    noteList.innerHTML='';
-    notes.forEach(n=>{
-      const el = document.createElement('div');
-      el.className = 'item';
-      el.innerHTML = `
-        <div>
-          <span class="badge t-${n.type}">${n.type}</span>
-          <strong style="margin-left:6px">${n.title}</strong>
-          <div style="color:var(--sub);margin-top:4px">${n.desc||''}</div>
-        </div>
-        <div style="color:var(--sub)">Fecha: ${fmt(n.ps)||fmt(n.as)||'-'}</div>
-        <div></div>
-        <div class="row" style="justify-content:flex-end">
-          <button class="btn" data-edit="${n.id}">Editar</button>
-          <button class="btn" data-del="${n.id}">Borrar</button>
-        </div>`;
-      el.onclick = (e)=>{
-        if(e.target.dataset.del){ state.items = state.items.filter(x=>x.id!==e.target.dataset.del); save(); renderAll(); }
-        if(e.target.dataset.edit){
-          const x = state.items.find(z=>z.id===e.target.dataset.edit);
-          if(!x) return;
-          selectByValue(fProject, x.projectId);
-          document.getElementById('fType').value = x.type;
-          document.getElementById('fTitle').value = x.title;
-          document.getElementById('fStatus').value = x.status;
-          document.getElementById('fPct').value = x.percent||0;
-          document.getElementById('fOwner').value = x.owner||'';
-          document.getElementById('fPs').value = x.ps||'';
-          document.getElementById('fPe').value = x.pe||'';
-          document.getElementById('fAs').value = x.as||'';
-          document.getElementById('fAe').value = x.ae||'';
-          document.getElementById('fDesc').value = x.desc||'';
-          itemForm.dataset.editing = x.id;
-          activate('capture');
-        }
-      }
-      noteList.appendChild(el);
-    })
-  }
-
-  function daysBetween(a,b){ const d=(x)=> new Date(x).setHours(0,0,0,0); return Math.max(0, Math.round((d(b)-d(a))/86400000)); }
-  function fmt(d){ return d? new Date(d).toISOString().slice(0,10):'' }
-  function pct(n){ n = Number(n)||0; return Math.min(100, Math.max(0, Math.round(n))) }
-  function selectByValue(sel,val){ [...sel.options].forEach(o=>o.selected = (o.value===val)); }
-
-  function renderGantt(){
-    const consolidated = ganttAll && ganttAll.checked;
-    const projId = consolidated ? null : (ganttProject.value || state.activeProject);
-
-    const byProject = new Map();
-    const projects = consolidated ? state.projects : state.projects.filter(p=>p.id===projId);
-
-    projects.forEach(p=> byProject.set(p.id, {project:p, items:[]}));
-
-    state.items.forEach(i=>{
-      if(!byProject.has(i.projectId)) return;
-      if(['Task','Meeting','Deliverable'].includes(i.type)){
-        byProject.get(i.projectId).items.push(i);
-      }
-    });
-
-    const groups = [...byProject.values()].filter(g=>g.items.length>0);
-    if(groups.length===0){ ganttSvg.innerHTML=''; return; }
-
-    // Build global date bounds
-    const allDates = [];
-    groups.forEach(g=> g.items.forEach(i=>{ if(i.ps) allDates.push(i.ps); if(i.pe) allDates.push(i.pe); if(i.as) allDates.push(i.as); if(i.ae) allDates.push(i.ae); }));
-    allDates.sort();
-    const minD = new Date(allDates[0]);
-    const maxD = new Date(allDates[allDates.length-1]);
-    const totalDays = daysBetween(minD, maxD)+1;
-
-    const padL = 160, rowH = 28, hdrH = 24, padT = 28;
-
-    // compute height accounting for collapsed groups
-    let rows = 0;
-    groups.forEach(g=>{
-      rows += 1; // header row
-      const collapsed = !!state.ui.collapsed[g.project.id];
-      if(collapsed){ rows += 1; } else { rows += g.items.length; }
-    });
-
-    const height = padT + rows*rowH + 40;
-    const width = Math.max(900, totalDays*24);
-    ganttSvg.setAttribute('viewBox', `0 0 ${width+padL+20} ${height}`);
-
-    const today = new Date(); today.setHours(0,0,0,0);
-    const xScale = (d)=> padL + (daysBetween(minD, d))*24;
-
-    let yCursor = padT;
-    let svg = '';
-
-    // vertical grid each 7 days
-    for(let t=0;t<=totalDays;t+=7){
-      const x = padL + t*24;
-      svg += `<line x1="${x}" y1="0" x2="${x}" y2="${height}" stroke="#172036" stroke-width="1" />`;
-      const labelDate = new Date(minD.getTime()+t*86400000);
-      svg += `<text x="${x+4}" y="14" fill="#9ca3af" font-size="10">${labelDate.toISOString().slice(5,10)}</text>`;
-    }
-    if(today>=minD && today<=maxD){ svg += `<line x1="${xScale(today)}" y1="0" x2="${xScale(today)}" y2="${height}" class="today" />`; }
-
-    // helper to draw plan/actual/delay bars
-    function drawBars(i, y){
-      if(i.ps && i.pe){ const x=xScale(new Date(i.ps)); const w=Math.max(8,(daysBetween(i.ps,i.pe)+1)*24); svg += `<rect x="${x}" y="${y+6}" width="${w}" height="8" class="bar-plan" rx="2" />`; }
-      if(i.as){ const end=i.ae||new Date(); const x=xScale(new Date(i.as)); const w=Math.max(8,(daysBetween(i.as,end)+1)*24); svg += `<rect x="${x}" y="${y+17}" width="${w}" height="8" class="bar-actual" rx="2" />`; }
-      if(i.pe && i.ae && new Date(i.ae) > new Date(i.pe)){ const x=xScale(new Date(i.pe)); const w=Math.max(6,(daysBetween(i.pe,i.ae)+1)*24); svg += `<rect x="${x}" y="${y+6}" width="${w}" height="8" class="bar-delay" rx="2" />`; }
-    }
-
-    function aggRange(items, keyS, keyE){
-      const s = items.map(x=>x[keyS]).filter(Boolean).sort()[0];
-      const e = items.map(x=>x[keyE]).filter(Boolean).sort().slice(-1)[0];
-      return s && e ? {s, e} : null;
-    }
-
-    // Draw groups
-    groups.forEach(g=>{
-      // header background (clickable)
-      svg += `<rect x="0" y="${yCursor}" width="${width+padL}" height="${rowH}" fill="#0b1222" opacity="0.6" data-proj="${g.project.id}" />`;
-      const collapsed = !!state.ui.collapsed[g.project.id];
-      const caret = collapsed ? '▶' : '▼';
-      svg += `<text x="8" y="${yCursor+18}" fill="#e5e7eb" font-size="12" font-weight="700" data-proj="${g.project.id}">${caret} ${g.project.name}</text>`;
-
-      // if collapsed, draw aggregated bars
-      if(collapsed){
-        const plan = aggRange(g.items.filter(i=>i.ps && i.pe),'ps','pe');
-        const act  = aggRange(g.items.filter(i=>i.as),(i=>i.as),'ae') || null; // fallback handled below
-        if(plan){ drawBars({ps:plan.s, pe:plan.e, as:null, ae:null}, yCursor); }
-        // actual aggregate
-        const asMin = g.items.map(i=>i.as).filter(Boolean).sort()[0];
-        const aeMax = g.items.map(i=>i.ae||new Date().toISOString().slice(0,10)).filter(Boolean).sort().slice(-1)[0];
-        if(asMin){ drawBars({ps:null, pe:null, as:asMin, ae:aeMax}, yCursor); }
-        // delay if any task delayed
-        const delayed = g.items.filter(i=> i.pe && i.ae && new Date(i.ae)>new Date(i.pe));
-        if(delayed.length){
-          const peMax = delayed.map(i=>i.pe).sort().slice(-1)[0];
-          const aeMax2 = delayed.map(i=>i.ae).sort().slice(-1)[0];
-          drawBars({ps:null, pe:null, as:null, ae:null, pe2:peMax, ae2:aeMax2}, yCursor);
-        }
-        yCursor += rowH;
+      if (user) {
+        signInBtn.style.display = 'none';
+        signOutBtn.style.display = 'inline-block';
+        userInfo.textContent = `Signed in as ${user.displayName || user.email}`;
+        await maybeMigrateLocalToFirestore(user.uid);
+        subscribeToTasks(user.uid);
       } else {
-        // expanded: draw each item
-        yCursor += rowH;
-        g.items.sort((a,b)=> (a.ps||a.as||'').localeCompare(b.ps||b.as||''));
-        g.items.forEach(i=>{
-          svg += `<text x="8" y="${yCursor+14}" fill="#e5e7eb" font-size="12">${i.title}</text>`;
-          drawBars(i, yCursor);
-          yCursor += rowH;
-        });
+        signInBtn.style.display = 'inline-block';
+        signOutBtn.style.display = 'none';
+        userInfo.textContent = '';
+        renderTasks(readLocal());
       }
     });
 
-    ganttSvg.innerHTML = svg;
-
-    // Click to toggle collapse on header rows
-    ganttSvg.onclick = (e)=>{
-      const id = e.target && e.target.getAttribute('data-proj');
-      if(!id) return;
-      state.ui.collapsed[id] = !state.ui.collapsed[id];
-      save(); renderGantt();
-    };
-  }
-
-  // Project Notes handling
-  function renderProjectNotes(){
-    if(!projectNotes) return;
-    const p = state.projects.find(x=>x.id===state.activeProject);
-    if(!p){ projectNotes.value=''; return; }
-    projectNotes.value = p.notes || '';
-  }
-  if(projectNotes){
-    let t;
-    projectNotes.oninput = ()=>{
-      const p = state.projects.find(x=>x.id===state.activeProject);
-      if(!p) return;
-      p.notes = projectNotes.value;
-      save();
-      clearTimeout(t);
-      if(notesSaved){ notesSaved.textContent = 'Guardado ✓'; t = setTimeout(()=> notesSaved.textContent='Auto-guardado', 1200); }
-    };
-  }
-  if(clearNotes){
-    clearNotes.onclick = ()=>{
-      const p = state.projects.find(x=>x.id===state.activeProject);
-      if(!p) return;
-      if(confirm('Limpiar notas de este proyecto?')){ p.notes=''; save(); renderProjectNotes(); }
-    };
-  }
-
-  // Events
-  addProjectBtn.onclick = ()=>{
-    const name = newProjectName.value.trim();
-    if(!name) return;
-    const p = {id:uid(), name};
-    state.projects.push(p); state.activeProject = p.id; save(); newProjectName.value=''; renderAll();
-  };
-
-  itemForm.onsubmit = (e)=>{
-    e.preventDefault();
-    const data = {
-      projectId: fProject.value,
-      type: document.getElementById('fType').value,
-      title: document.getElementById('fTitle').value.trim(),
-      status: document.getElementById('fStatus').value,
-      percent: Number(document.getElementById('fPct').value||0),
-      owner: document.getElementById('fOwner').value.trim(),
-      ps: document.getElementById('fPs').value,
-      pe: document.getElementById('fPe').value,
-      as: document.getElementById('fAs').value,
-      ae: document.getElementById('fAe').value,
-      desc: document.getElementById('fDesc').value.trim()
-    };
-    if(itemForm.dataset.editing){
-      const id = itemForm.dataset.editing;
-      const i = state.items.find(x=>x.id===id);
-      Object.assign(i, data); itemForm.dataset.editing='';
-    } else {
-      state.items.push({ id:uid(), ...data });
-    }
-    save(); e.target.reset(); renderAll();
-  }
-
-  tabs.forEach(t=> t.onclick = ()=> activate(t.dataset.tab));
-  mobileTabs.querySelectorAll('button').forEach(b=> b.onclick = ()=> activate(b.dataset.tab));
-
-  function activate(tab){
-    tabs.forEach(t=> t.classList.toggle('active', t.dataset.tab===tab));
-    mobileTabs.querySelectorAll('button').forEach(b=> b.classList.toggle('active', b.dataset.tab===tab));
-    sections.forEach(s=> s.classList.toggle('active', s.id===tab));
-    if(tab==='gantt') renderGantt();
-    if(tab==='minutes') renderNotes();
-  }
-
-  document.getElementById('filterType').onchange = renderList;
-  document.getElementById('filterStatus').onchange = renderList;
-  filterProject.onchange = renderList;
-  search.oninput = ()=> { renderList(); renderNotes(); };
-
-  exportBtn.onclick = ()=>{
-    const blob = new Blob([JSON.stringify(state,null,2)], {type:'application/json'});
-    const url = URL.createObjectURL(blob);
-    const a = Object.assign(document.createElement('a'), {href:url, download:'task-manager.json'});
-    a.click(); URL.revokeObjectURL(url);
-  };
-  importBtn.onclick = ()=> importInput.click();
-  importInput.onchange = (e)=>{
-    const file = e.target.files[0]; if(!file) return;
-    const fr = new FileReader();
-    fr.onload = () => { try { state = JSON.parse(fr.result); migrate(); save(); renderAll(); } catch(err){ alert('Archivo inválido') } };
-    fr.readAsText(file);
-  }
-
-  clearDataBtn.onclick = ()=>{
-    if(confirm('Borrar todo?')){ localStorage.removeItem(LS_KEY); state = {projects:[], items:[], activeProject:null}; ensureDefaults(); renderAll(); }
-  }
-
-  document.getElementById('refreshGantt').onclick = renderGantt;
-  if(ganttAll){ ganttAll.onchange = renderGantt; }
-  if(expandAll){ expandAll.onclick = ()=>{ state.projects.forEach(p=> state.ui.collapsed[p.id]=false); save(); renderGantt(); } }
-  if(collapseAll){ collapseAll.onclick = ()=>{ state.projects.forEach(p=> state.ui.collapsed[p.id]=true); save(); renderGantt(); } }
-
-  // Keyboard search focus
-  window.addEventListener('keydown', (e)=>{
-    if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='k'){ e.preventDefault(); search.focus(); }
-  });
-
-  function renderAll(){ renderProjects(); renderList(); renderNotes(); renderProjectNotes(); if(document.getElementById('gantt').classList.contains('active')) renderGantt(); }
-
-  renderAll();
-})();
-</script>
-<!-- Firebase realtime sync (per project collections) -->
-<script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
-<script>
-  // === Firebase config (de Alberto) ===
-  const firebaseConfig = {
-    apiKey: "AIzaSyByXG4mk3yaRKNj0Rj_1YhkT4ptJlcKVZE",
-    authDomain: "taskmanager-63481.firebaseapp.com",
-    projectId: "taskmanager-63481",
-    storageBucket: "taskmanager-63481.appspot.com",
-    messagingSenderId: "647094080600",
-    appId: "1:647094080600:web:7e088d362e7edac2fae62d"
-  };
-  firebase.initializeApp(firebaseConfig);
-
-  const auth = firebase.auth();
-  const db   = firebase.firestore();
-  // UID fijo para sincronizar entre tus dispositivos
-  const FIXED_UID = "alberto-main";
-
-  // Namespace helpers
-  const cloud = { userId:null, subs:{projects:null, items:{}}, applying:false };
-  const colProjects = ()=> db.collection('users').doc(cloud.userId).collection('projects');
-  const colItems = (projectId)=> colProjects().doc(projectId).collection('items');
-
-  function toPlain(obj){ return JSON.parse(JSON.stringify(obj)); }
-
-  // Patch save() to also sync to cloud (upsert + prune)
-  const _localSave = window.save; // defined in main script
-  window.save = async function(){
-    _localSave && _localSave();
-    if(!cloud.userId || cloud.applying) return;
-    try { await cloudSyncAll(); } catch(e){ console.warn('Cloud sync error', e); }
-  }
-
-  async function cloudSyncAll(){
-    // Upsert projects
-    const localProjects = toPlain(window.state.projects||[]);
-    const localItems = toPlain(window.state.items||[]);
-
-    // Fetch remote for pruning
-    const remoteProjSnap = await colProjects().get();
-    const remoteProjIds = new Set(remoteProjSnap.docs.map(d=>d.id));
-    const localProjIds = new Set(localProjects.map(p=>p.id));
-
-    // Upsert each project
-    for(const p of localProjects){
-      await colProjects().doc(p.id).set({
-        id:p.id, name:p.name, notes:p.notes||'', updatedAt:Date.now()
-      }, {merge:true});
-    }
-    // Delete remote projects not present locally
-    for(const rid of remoteProjIds){ if(!localProjIds.has(rid)){
-      await colProjects().doc(rid).delete().catch(()=>{});
-    }}
-
-    // Items per project
-    for(const p of localProjects){
-      const items = localItems.filter(i=>i.projectId===p.id);
-      const snap = await colItems(p.id).get();
-      const remoteItemIds = new Set(snap.docs.map(d=>d.id));
-      const localItemIds = new Set(items.map(i=>i.id));
-
-      for(const i of items){
-        await colItems(p.id).doc(i.id).set({ ...i, userId:cloud.userId, updatedAt:Date.now() }, {merge:true});
-      }
-      for(const rid of remoteItemIds){ if(!localItemIds.has(rid)){
-        await colItems(p.id).doc(rid).delete().catch(()=>{});
-      }}
-    }
-  }
-
-  // Apply remote → local (source of truth), keep UI live
-  function applyRemote(projects, itemsByProject){
-    cloud.applying = true;
-    try{
-      const items = [];
-      for(const pid of Object.keys(itemsByProject)){
-        items.push(...itemsByProject[pid]);
-      }
-      window.state.projects = projects;
-      if(!window.state.activeProject && projects[0]) window.state.activeProject = projects[0].id;
-      window.state.items = items;
-      window.save(); // will call local save; cloud sync skipped due to applying=true
-      if(typeof renderAll==='function') renderAll();
-    } finally {
-      cloud.applying = false;
-    }
-  }
-
-  function subscribeCloud(){
-    if(!cloud.userId) return;
-    // unsubscribe old
-    cloud.subs.projects && cloud.subs.projects();
-    Object.values(cloud.subs.items).forEach(u=> u && u());
-    cloud.subs.items = {};
-
-    // Projects subscription
-    cloud.subs.projects = colProjects().orderBy('name').onSnapshot(async snap=>{
-      const projects = snap.docs.map(d=> ({ id:d.id, name:d.data().name, notes:(d.data().notes||'') }));
-      // For each project, subscribe items
-      const itemsByProject = {};
-      let pending = projects.length;
-      if(pending===0){ applyRemote(projects, {}); return; }
-      projects.forEach(p=>{
-        // clean previous
-        cloud.subs.items[p.id] && cloud.subs.items[p.id]();
-        cloud.subs.items[p.id] = colItems(p.id).onSnapshot(s2=>{
-          itemsByProject[p.id] = s2.docs.map(d=> d.data());
-          pending = Math.max(0, pending-1);
-          if(pending===0){ applyRemote(projects, itemsByProject); }
-        });
+    // Firestore CRUD
+    function subscribeToTasks(uid){
+      const qy = query(collection(db, `users/${uid}/tasks`), orderBy("createdAt", "asc"));
+      unsubscribe = onSnapshot(qy, (snap) => {
+        const tasks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderTasks(tasks);
       });
-    });
-  }
+    }
+    async function createTask(uid, text){
+      await addDoc(collection(db, `users/${uid}/tasks`), { text, done:false, createdAt: serverTimestamp() });
+    }
+    async function setTaskDone(uid, id, done){
+      await setDoc(doc(db, `users/${uid}/tasks/${id}`), { done }, { merge: true });
+    }
+    async function removeTask(uid, id){
+      await deleteDoc(doc(db, `users/${uid}/tasks/${id}`));
+    }
 
-  auth.signInAnonymously().catch(console.error);
-// Usamos un UID fijo para que todos tus dispositivos escriban/lean del mismo espacio
-cloud.userId = FIXED_UID;
-subscribeCloud();
-</script>
+    // Add button
+    if (addBtn && input) {
+      addBtn.addEventListener('click', async () => {
+        const text = (input.value || '').trim();
+        if (!text) return;
+        const u = auth.currentUser;
+        if (u) { await createTask(u.uid, text); }
+        else {
+          const tasks = readLocal();
+          tasks.push({ id: crypto.randomUUID(), text, done:false });
+          writeLocal(tasks); renderTasks(tasks);
+        }
+        input.value = '';
+      });
+    }
+
+    // Exposed for checkboxes and deletes
+    window.toggleDone = async (id, checked) => {
+      const u = auth.currentUser;
+      if (u) return setTaskDone(u.uid, id, checked);
+      const tasks = readLocal().map(t => t.id === id ? { ...t, done: checked } : t);
+      writeLocal(tasks); renderTasks(tasks);
+    };
+    window.deleteTask = async (id) => {
+      const u = auth.currentUser;
+      if (u) return removeTask(u.uid, id);
+      const tasks = readLocal().filter(t => t.id !== id);
+      writeLocal(tasks); renderTasks(tasks);
+    };
+
+    // Render
+    function renderTasks(tasks){
+      if (!list) return;
+      list.innerHTML = '';
+      tasks.forEach(t => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+          <label>
+            <input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggleDone('${t.id}', this.checked)">
+            <span class="${t.done ? 'done' : ''}">${escapeHtml(t.text)}</span>
+          </label>
+          <button class="delete" onclick="deleteTask('${t.id}')">✕</button>
+        `;
+        list.appendChild(li);
+      });
+    }
+
+    // Local storage fallback + one-time migration
+    const LS_KEY = 'taskmanager.tasks';
+    function readLocal(){ try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); } catch { return []; } }
+    function writeLocal(tasks){ localStorage.setItem(LS_KEY, JSON.stringify(tasks)); }
+    async function maybeMigrateLocalToFirestore(uid){
+      const flag = sessionStorage.getItem('migrated');
+      if (flag) return;
+      const local = readLocal();
+      if (local.length === 0) return;
+      await Promise.all(local.map(t => addDoc(collection(db, `users/${uid}/tasks`), { text: t.text, done: !!t.done, createdAt: serverTimestamp() })));
+      sessionStorage.setItem('migrated','1');
+    }
+
+    function escapeHtml(s){ return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])); }
+  </script>
 </body>
 </html>
